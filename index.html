@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no">
+        <script src="https://bitcoincore.tech/apps/bitcoinjs-ui/lib/bitcoinjs-lib.js"></script>
+        <title>Zaplocker</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet">
+        <script src="https://supertestnet.github.io/bitcoin-chess/js/bolt11.js"></script>
+        <script src="https://bundle.run/browserify-cipher@1.0.1"></script>
+        <script src="https://bundle.run/noble-secp256k1@1.2.14"></script>
+        <script src="https://bundle.run/varuint-bitcoin@1.1.2"></script>
+        <script src="https://bundle.run/base58check@2.0.0"></script>
+        <script src="https://unpkg.com/@cmdcode/tapscript"></script>
+        <script src="https://bundle.run/bech32@2.0.0"></script>
+        <script src="https://bundle.run/buffer@6.0.3"></script>
+        <script>var Buffer = buffer.Buffer;</script>
+        <script src="https://bundle.run/bip39@3.0.4"></script>
+        <script src="https://bundle.run/bip32@2.0.6"></script>
+        <style>
+            * {
+                box-sizing: border-box;
+                font-size: 1.15rem;
+                font-family: Arial, sans-serif;
+            }
+            html {
+                max-width: 70ch;
+                padding: 3rem 1rem;
+                margin: auto;
+                line-height: 1.25;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            h2 {
+                font-size: 1.5rem;
+            }
+            input {
+                line-height: 1.25;
+                width: 100%;
+                height: 1.8rem;
+                font-size: 1.15rem;
+                border: 1px solid grey;
+            }
+            .hidden {
+                display: none;
+            }
+            .crossed_out {
+                text-decoration: line-through;
+            }
+            .header_wrapper {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .log_in, .log_out {
+                height: 2rem;
+            }
+            .desired_username {
+                text-align: right;;
+            }
+            .bad_form {
+                outline: 3px solid red;
+                background-color: pink;
+                outline-offset: 3px;
+            }
+            .black-bg {
+                display: none;
+                width: 100%;
+                position: fixed;
+                top: 0;
+                left: 0;
+                background-color: black;
+                opacity: .5;
+                width: 100vw;
+                height: 100vh;
+            }
+            .modal {
+                display: none;
+                position: fixed;
+                box-sizing: border-box;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%,-50%);
+                width: 100%;
+                max-width: 560px;
+                background-color: white;
+                border-radius: 1rem;
+                padding: 20px;
+                color: black;
+                text-align: center;
+                word-wrap: break-word;
+            }
+            .modal * {
+                color: black;
+            }
+            .pending_pmt {
+                margin-bottom: 1rem;
+                padding: 1rem;
+                border: 1px solid black;
+                border-radius: 1rem;
+                word-wrap: break-word;
+            }
+            .loaded_paycode {
+                word-wrap: break-word;
+            }
+            .tan {
+                background-color: tan;
+                padding: 1rem;
+            }
+            .black_stripes, .black_stripes_bottom {
+                background: repeating-linear-gradient(
+                  0deg,
+                  white,
+                  white 1rem,
+                  black 1rem,
+                  black 2rem
+                );
+                height: 8rem;
+                display: flex;
+                justify-content: center;
+                align-items: flex-end;
+            }
+            .black_stripes_bottom {
+                align-items: center;
+                height: 9rem;
+            }
+            .black_stripes span {
+                font-family: 'Anton', sans-serif;
+                font-weight: bold;
+                font-size: 200%;
+                letter-spacing: 10px;
+                color: red;
+                padding: 1rem 20rem;
+                background-image: linear-gradient(to right, rgba(0,0,0,0) 10%, rgba(255,255,255,1) 35%, rgba(255,255,255,1) 64%, rgba(0,0,0,0) 90%);
+            }
+            .black_stripes_bottom span {
+                padding: 1rem 10rem;
+                background-image: linear-gradient(to right, rgba(0,0,0,0) 10%, rgba(255,255,255,1) 35%, rgba(255,255,255,1) 64%, rgba(0,0,0,0) 90%);
+            }
+            .black_stripes_bottom span button {
+                position: relative;
+                font-family: 'Ubuntu Mono', monospace;
+                font-weight: bold;
+                font-size: 120%;
+                letter-spacing: 3px;
+                color: white;
+                background-image: linear-gradient(to bottom, rgba(255,255,255,1) .5%, rgba(255,0,0,1) 35%, rgba(255,0,0,1) 65%, rgba(255,255,255,1) 99.5%);
+                border: 2px solid darkred;
+                border-radius: 1rem;
+                padding: .4rem 1rem;
+                cursor: pointer;
+            }
+            .black_stripes_bottom span button:active {
+                top: 2px;
+                left: 2px;
+            }
+            .big_btns {
+                display: flex;
+                justify-content: space-between;
+            }
+            .big_btns * {
+                font-family: 'Ubuntu Mono', monospace;
+            }
+            .big_btn {
+                text-align: center;
+            }
+            .big_logo {
+                width: 100% !important;
+                background-size: contain;
+                background-repeat: no-repeat;
+                background-position: center center;
+                height: 6rem;
+                width: 4rem;
+            }
+            .big_num {
+                color: red;
+                font-size: 150%;
+                margin-right: .2rem;
+            }
+            .log_in_logo {
+                background-image: url( 'https://swapservice.xyz/nostr-icon-purple-on-white%201.png' );
+            }
+            .choose_logo {
+                background-size: 80%;
+                background-image: url( 'https://swapservice.xyz/head%201.png' );
+            }
+            .receive_logo {
+                background-image: url( 'https://swapservice.xyz/head-2%201.png' );
+            }
+            @media screen and (max-width: 600px) {
+            }
+            @media screen and (max-width: 400px) {
+                .big_btns {
+                    display: block;
+                }
+                .big_btn {
+                    margin: 3rem 0;
+                }
+                .choose_logo {
+                    background-size: 50%;
+                }
+            }
+        </style>
+        <script>
+            var $ = document.querySelector.bind( document );
+            var $$ = document.querySelectorAll.bind( document );
+            var url_params = new URLSearchParams( window.location.search );
+            var url_keys = url_params.keys();
+            var $_GET = {}
+            for ( var key of url_keys ) $_GET[ key ] = url_params.get( key );
+        </script>
+        <script>
+            var { getSharedSecret, schnorr, utils } = nobleSecp256k1;
+            var crypto  = window.crypto;
+            var getRand = size => crypto.getRandomValues(new Uint8Array(size));
+            var sha256  = bitcoinjs.crypto.sha256;
+            var keypair = bitcoinjs.ECPair.makeRandom();
+            var privKey = keypair.privateKey.toString( "hex" );
+            var pubKey  = keypair.publicKey.toString( "hex" );
+            pubKey      = pubKey.substring( 2 );
+            console.log( pubKey );
+        </script>
+        <script>
+            var v2 = false;
+            var user_pubkey = null;
+            function modalVanish() {
+                $( ".black-bg" ).style.display = "none";
+                $( ".modal" ).style.display = "none";
+            }
+            function showModal( content, block_til_clear ) {
+                if ( block_til_clear ) var fn = `modalVanish();sessionStorage[ 'modal_cleared' ] = true;`; else var fn = `modalVanish();`;
+                $( ".modal" ).innerHTML = `<div style="position: absolute;right: 1rem;top: 0.5rem;font-size: 2rem; cursor: pointer; color: black;" onclick="${fn}">&times;</div>`;
+                $( ".modal" ).innerHTML += `<div style="overflow-y: auto; max-height: 80vh; margin-top: 1.5rem;">${content}</div>`;
+                $( ".black-bg" ).style.display = "block";
+                $( ".modal" ).style.display = "block";
+            }
+            function hexToBytes( hex ) {
+                return Uint8Array.from( hex.match( /.{1,2}/g ).map( ( byte ) => parseInt( byte, 16 ) ) );
+            }
+            function textToHex( text ) {
+                var encoder = new TextEncoder().encode( text );
+                return [...new Uint8Array(encoder)]
+                    .map( x => x.toString( 16 ).padStart( 2, "0" ) )
+                    .join( "" );
+            }
+            var username_is_good = async name => {
+                var port = "";
+                if ( window.location.port ) port = `:${window.location.port}`;
+                var username_is_good = await getData( `${window.location.protocol + "//" + window.location.hostname + port}/test_username/?username=${name}` );
+                username_is_good = username_is_good.includes( "error" ) ? false : true;
+                return username_is_good;
+            }
+            function pubkeyToNpub( hex ) {
+                return bech32.bech32.encode( "npub", bech32.bech32.toWords( hexToBytes( hex, "hex" ) ) );
+            }
+            function getData( url ) {
+                return new Promise( async function( resolve, reject ) {
+                    function inner_get( url ) {
+                        var xhttp = new XMLHttpRequest();
+                        xhttp.open( "GET", url, true );
+                        xhttp.send();
+                        return xhttp;
+                    }
+                    var data = inner_get( url );
+                    data.onerror = function( e ) {
+                        resolve( "error" );
+                    }
+                    async function isResponseReady() {
+                        return new Promise( function( resolve2, reject ) {
+                            if ( !data.responseText || data.readyState != 4 ) {
+                                setTimeout( async function() {
+                                    var msg = await isResponseReady();
+                                    resolve2( msg );
+                                }, 1 );
+                            } else {
+                                resolve2( data.responseText );
+                            }
+                        });
+                    }
+                    var returnable = await isResponseReady();
+                    resolve( returnable );
+                });
+            }
+            async function postData( url, json, content_type = "", apikey = "" ) {
+                var rtext = "";
+                function inner_post( url, json, content_type = "", apikey = "" ) {
+                    var xhttp = new XMLHttpRequest();
+                    xhttp.open( "POST", url, true );
+                    if ( content_type ) {
+                        xhttp.setRequestHeader( `Content-Type`, content_type );
+                    }
+                    if ( apikey ) {
+                        xhttp.setRequestHeader( `X-Api-Key`, apikey );
+                    }
+                    xhttp.send( json );
+                    return xhttp;
+                }
+                var data = inner_post( url, json, content_type, apikey );
+                data.onerror = function( e ) {
+                    rtext = "error";
+                }
+                async function isResponseReady() {
+                    return new Promise( function( resolve, reject ) {
+                        if ( rtext == "error" ) {
+                            resolve( rtext );
+                        }
+                        if ( !data.responseText || data.readyState != 4 ) {
+                            setTimeout( async function() {
+                                var msg = await isResponseReady();
+                                resolve( msg );
+                            }, 50 );
+                        } else {
+                            resolve( data.responseText );
+                        }
+                    });
+                }
+                var returnable = await isResponseReady();
+                return returnable;
+            }
+            function pubkeyFromNpub( npub ) {
+                return bytesToHex( bech32.bech32.fromWords( bech32.bech32.decode( npub ).words ) );
+            }
+            function bytesToHex( bytes ) {
+                return bytes.reduce( ( str, byte ) => str + byte.toString( 16 ).padStart( 2, "0" ), "" );
+            }
+            var isValidNpub = npub => {
+                try {
+                    var hex = pubkeyFromNpub( npub );
+                    if ( hex.length == 64 && isValidHex( hex ) ) return true;
+                } catch( e ) {
+                    return;
+                }
+                return;
+            }
+            function isValidHex( h ) {
+                if ( !h ) return;
+                var length = h.length;
+                if ( length % 2 ) return;
+                try {
+                    var a = BigInt( "0x" + h, "hex" );
+                } catch( e ) {
+                    return;
+                }
+                var unpadded = a.toString( 16 );
+                var padding = [];
+                var i; for ( i=0; i<length; i++ ) padding.push( 0 );
+                padding = padding.join( "" );
+                padding = padding + unpadded.toString();
+                padding = padding.slice( -Math.abs( length ) );
+                return ( padding === h );
+            }
+            async function getBlockheight( network ) {
+                var data = await getData( "https://blockstream.info/" + network + "api/blocks/tip/height" );
+                return Number( data );
+            }
+            function generateHtlc(serverPubkey, userPubkey, pmthash, timelock) {
+                return bitcoinjs.script.fromASM(
+                    `
+                        OP_SIZE
+                        ${bitcoinjs.script.number.encode(32).toString('hex')}
+                        OP_EQUALVERIFY
+                        OP_SHA256
+                        ${pmthash}
+                        OP_EQUAL
+                        OP_IF
+                            ${userPubkey}
+                        OP_ELSE
+                            ${bitcoinjs.script.number.encode(timelock).toString("hex")}
+                            OP_CHECKLOCKTIMEVERIFY
+                            OP_DROP
+                            ${serverPubkey}
+                        OP_ENDIF
+                        OP_CHECKSIG
+                    `
+                    .trim()
+                    .replace(/\s+/g, " ")
+                );
+            }
+            //this function returns true if the address received money or false if it did not
+            function addressOnceHadMoney(address) {
+              return new Promise(function (resolve, reject) {
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function () {
+                  if (
+                    this.readyState == 4 &&
+                    this.status > 199 &&
+                    this.status < 300
+                  ) {
+                    var json = JSON.parse(xhttp.responseText);
+                    if (
+                      json["chain_stats"]["funded_txo_count"] > 0 ||
+                      json["mempool_stats"]["funded_txo_count"] > 0
+                    ) {
+                      resolve(true);
+                    }
+                    resolve(false);
+                  }
+                };
+                xhttp.open(
+                  "GET",
+                  "https://mempool.space/api/address/" + address,
+                  true
+                );
+                xhttp.send();
+              });
+            }
+            //this function waits until money arrives in an address, checking every five seconds, and then returns true -- it never returns false but it can hang forever
+            async function waitForMoneyToArriveInAddress(address) {
+              async function isAddressFundedYet(address) {
+                var address_received_money = await addressOnceHadMoney(address);
+                return new Promise(function (resolve, reject) {
+                  if (!address_received_money) {
+                    setTimeout(async function () {
+                      var msg = await isAddressFundedYet(address);
+                      resolve(msg);
+                    }, 5000);
+                  } else {
+                    resolve(address_received_money);
+                  }
+                });
+              }
+              async function getTimeoutData() {
+                var address_received_money = await isAddressFundedYet(address);
+                return address_received_money;
+              }
+              var returnable = await getTimeoutData();
+              return returnable;
+            }
+
+            async function addressReceivedMoneyInThisTx(address) {
+              let txid;
+              let vout;
+              let amt;
+              let nonjson = await getData("https://mempool.space/api/address/" + address + "/txs");
+              let json = JSON.parse(nonjson);
+              json.forEach(function (tx) {
+                tx["vout"].forEach(function (output, index) {
+                  if (output["scriptpubkey_address"] == address) {
+                    txid = tx["txid"];
+                    vout = index;
+                    amt = output["value"];
+                  }
+                });
+              });
+              return [txid, vout, amt];
+            }
+            function sweepingHTLC( txid, txindex, original_quantity_of_sats, new_quantity_of_sats, userPrivkey, serverPubkey, preimage, timelock, useraddress, userPubkey ) {
+                console.log(
+                  "serverPubkey:",
+                  serverPubkey,
+                  "userPubkey:",
+                  userPubkey,
+                  "preimage:",
+                  preimage,
+                  "timelock:",
+                  timelock
+                );
+                var pmthash = bitcoinjs.crypto
+                  .sha256(Buffer.from(preimage, "hex"))
+                  .toString("hex");
+
+                var witnessscript = generateHtlc(
+                  serverPubkey,
+                  userPubkey,
+                  pmthash,
+                  timelock
+                );
+                console.log("witness script:", witnessscript.toString("hex"));
+                var outputscript =
+                  "00" + bitcoinjs.crypto.sha256(witnessscript).toString("hex");
+                //  var useraddress = "tb1ql7w62elx9ucw4pj5lgw4l028hmuw80sndtntxt";
+                var psbt = new bitcoinjs.Psbt({ network: bitcoinjs.networks.mainnet });
+                //  psbt.setLocktime( timelock );
+                psbt.addInput({
+                  hash: txid,
+                  index: txindex,
+                  sequence: 0xfffffffe,
+                  witnessUtxo: {
+                    script: Buffer.from(
+                      "0020" +
+                        bitcoinjs.crypto
+                          .sha256(Buffer.from(witnessscript, "hex"))
+                          .toString("hex"),
+                      "hex"
+                    ),
+                    value: original_quantity_of_sats,
+                  },
+                  witnessScript: Buffer.from(witnessscript, "hex"),
+                });
+                psbt.addOutput({
+                  address: useraddress,
+                  value: new_quantity_of_sats,
+                });
+                psbt.signInput(
+                  0,
+                  bitcoinjs.ECPair.fromPrivateKey(Buffer.from(userPrivkey, "hex"))
+                );
+
+                var getFinalScripts = (txindex, input, script) => {
+                  // Step 1: Check to make sure the meaningful locking script matches what you expect.
+                  var decompiled = bitcoinjs.script.decompile(script);
+                  if (!decompiled || decompiled[0] !== bitcoinjs.opcodes.OP_SIZE) {
+                    throw new Error(`Can not finalize input #${txindex}`);
+                  }
+
+                  // Step 2: Create final scripts
+                  var witnessStackClaimBranch = bitcoinjs.payments.p2wsh({
+                    redeem: {
+                      network: bitcoinjs.networks.mainnet,
+                      output: script,
+                      input: bitcoinjs.script.compile([
+                        input.partialSig[0].signature,
+                        Buffer.from(preimage, "hex"),
+                      ]),
+                    },
+                    network: bitcoinjs.networks.mainnet,
+                  });
+                  console.log("First branch witness stack:");
+                  console.log(
+                    witnessStackClaimBranch.witness.map((x) => x.toString("hex"))
+                  );
+                  return {
+                    finalScriptWitness: witnessStackToScriptWitness(
+                      witnessStackClaimBranch.witness
+                    ),
+                  };
+                };
+                psbt.finalizeInput(0, getFinalScripts);
+                return psbt.extractTransaction().toHex();
+            }
+            async function getMinFeeRate() {
+                var fees = await getData( "https://mempool.space/api/v1/fees/recommended" );
+                fees = JSON.parse( fees );
+                if ( !( "hourFee" in fees ) ) return "error -- site down";
+                var minfee = fees[ "hourFee" ];
+                return minfee;
+            }
+            function witnessStackToScriptWitness(witness) {
+                let buffer2 = buffer.Buffer.allocUnsafe(0);
+                function writeSlice(slice) {
+                    buffer2 = buffer.Buffer.concat([buffer2, buffer.Buffer.from(slice)]);
+                }
+                function writeVarInt(i) {
+                    const currentLen = buffer2.length;
+                    const varintLen = varuintBitcoin.encodingLength(i);
+                    buffer2 = buffer.Buffer.concat([buffer2, buffer.Buffer.allocUnsafe(varintLen)]);
+                    varuintBitcoin.encode(i, buffer2, currentLen);
+                }
+                function writeVarSlice(slice) {
+                    writeVarInt(slice.length);
+                    writeSlice(slice);
+                }
+                function writeVector(vector) {
+                    writeVarInt(vector.length);
+                    vector.forEach(writeVarSlice);
+                }
+                writeVector(witness);
+                return buffer2;
+            }
+            async function pushBTCpmt(rawtx) {
+                var txid = await postData( "https://mempool.space/api/tx", rawtx );
+                return txid;
+            }
+            async function getNote( item ) {
+                async function isNoteSetYet( note_i_seek ) {
+                    return new Promise( function( resolve, reject ) {
+                        if ( !note_i_seek ) {
+                            setTimeout( async function() {
+                                var msg = await isNoteSetYet( sessionStorage[ item ] );
+                                resolve( msg );
+                            }, 100 );
+                        } else {
+                            resolve( note_i_seek );
+                        }
+                    });
+                }
+                async function getTimeoutData() {
+                    var note_i_seek = await isNoteSetYet( sessionStorage[ item ] );
+                    return note_i_seek;
+                }
+                var returnable = await getTimeoutData();
+                return returnable;
+            }
+            var loadUser = async ( user_pubkey, port, user_data ) => {
+                var port = "";
+                if ( window.location.port ) port = `:${window.location.port}`;
+                user_data = JSON.parse( user_data );
+                $( '.loaded_username' ).innerText = user_data[ "username" ];
+                $( '.loaded_lnaddress' ).innerText = user_data[ "username" ] + "@" + window.location.hostname + port;
+                $( '.loaded_paycode' ).innerText = bech32.bech32.encode( "lnurl", bech32.bech32.toWords( hexToBytes( textToHex( window.location.protocol + "//" + window.location.hostname + port + "/.well-known/lnurlp/" + user_data[ "username" ] ) ) ), 10000 ).toUpperCase();
+                if ( user_data[ "relays_array" ] ) {
+                    v2 = true;
+                    $( '.v2_info' ).classList.remove( "hidden" );
+                    user_data[ "relays_array" ].forEach( relay => {
+                        var li = document.createElement( "li" );
+                        li.innerText = relay;
+                        $( '.user_relays' ).append( li );
+                    });
+                    $( '.relays_sig' ).innerText = user_data[ "relays_sig" ];
+                    var user_pubkey = await window.nostr.getPublicKey();
+                    var sig_is_good = await nobleSecp256k1.schnorr.verify( user_data[ "relays_sig" ], sha256( JSON.stringify( user_data[ "relays_array" ] ) ).toString( "hex" ), user_pubkey );
+                    //console.log( "sig is good, right?", sig_is_good );
+                    if ( !sig_is_good ) return alert( "Warning, this website is trying to scam you! It is telling you you use a certain set of relays that you did not sign! Beware, and do not trust this site any further!" );
+                }
+                $( '.onboarder' ).classList.add( "hidden" );
+                $( '.onboarded' ).classList.remove( "hidden" );
+                var preimages = await window.nostr.nip04.decrypt( user_pubkey, user_data[ "ciphertext" ] );
+                if ( !user_data[ "pending" ].length ) return;
+                var html = ``;
+                user_data[ "pending" ].forEach( async ( pending_pmt, index ) => {
+                    var pmthash = pending_pmt[ "pmthash" ];
+                    var matching_preimage;
+                    var i; for ( i=0; i<preimages.match(/.{1,64}/g).length; i++ ) {
+                        var preimage = preimages.match(/.{1,64}/g)[ i ];
+                        hash = bytesToHex( sha256( hexToBytes( preimage ) ) );
+                        if ( hash === pmthash ) {
+                            matching_preimage = preimage;
+                            break;
+                        }
+                    }
+                    pending_pmt[ "preimage" ] = matching_preimage;
+                    user_data[ "pending" ][ index ] = pending_pmt;
+                    var current_blockheight = await getBlockheight( "" );
+                    console.log( "blockheight:", current_blockheight );
+                    var blocks_til_expiry = pending_pmt[ "expires" ] - current_blockheight;
+                    var feerate = await getMinFeeRate();
+                    var single_mining_fee = ( feerate * 200 );
+                    var mining_fee = ( feerate * 200 ) * 2;
+                    var amount_expected_in_swap_address = pending_pmt[ "amount" ] - pending_pmt[ "swap_fee" ] - single_mining_fee;
+                    var amount_expected = pending_pmt[ "amount" ] - pending_pmt[ "swap_fee" ] - mining_fee;
+                    var amount_expected_ln = pending_pmt[ "amount" ] - pending_pmt[ "swap_fee" ];
+                    html += `
+                        <div class="pending_pmt">
+                            Amount sent: ${pending_pmt[ "amount" ]} sats<br>
+                            Server fee: ${pending_pmt[ "swap_fee" ]} sats<br>
+                            Mining fee (estimate -- only on the base layer): ${mining_fee} sats<br>
+                            Amount you'll get after fees (on the base layer): ${amount_expected} sats<br>
+                            Amount you'll get after fees (over lightning): ${amount_expected + mining_fee} sats<br>
+                            Expires: ~${blocks_til_expiry * 10} minutes<br>
+                            <div class="attestation_loader">Loading attestations...</div>
+                            <div class="attestation_info hidden" data-pmthash="${pending_pmt[ "pmthash" ]}" data-pending_amt="${pending_pmt[ "amount" ]}" data-swap_fee="${pending_pmt[ "swap_fee" ]}" >
+                                Number of attestations: <span class="att_num">0</span><br>
+                                What this means: <span class="att_meaning"></span><br>
+                            </div>
+                            <p><button class="settle_bl" data-preimage="${pending_pmt[ "preimage" ]}" data-serverpub="${pending_pmt[ "serverPubkey" ]}">Settle&nbsp;on&nbsp;base&nbsp;layer</button></p>
+                            <p><button class="settle_ln" data-preimage="${pending_pmt[ "preimage" ]}" data-serverpub="${pending_pmt[ "serverPubkey" ]}">Settle&nbsp;over&nbsp;lightning</button></p>
+                        </div>
+                    `;
+                    if ( index === user_data[ "pending" ].length - 1 ) {
+                        $( '.loaded_pending' ).innerText = ``;
+                        var div1 = document.createElement( "div" );
+                        div1.innerHTML = html;
+                        $( '.loaded_pending' ).append( div1 );
+                        $$( '.settle_bl' ).forEach( button => {
+                            button.onclick = async b => {
+                                var useraddress = prompt( "Please enter a bitcoin address where you want your money to go" );
+                                if ( !isValidAddress( useraddress ) ) return alert( "Please try again with a valid bitcoin address" );
+                                if ( useraddress.startsWith( "tb1p" ) ) return alert( "Please try again. That was a taproot address and taproot addresses are not supported yet." );
+                                var swap_privkey = bytesToHex( nobleSecp256k1.utils.randomBytes() );
+                                var swap_pubkey = nobleSecp256k1.getPublicKey( swap_privkey, true );
+                                var current_blockheight = await getBlockheight( "" );
+                                console.log( "blockheight:", current_blockheight );
+                                var preimage = b.target.getAttribute( "data-preimage" );
+                                var pmthash = bytesToHex( sha256( hexToBytes( preimage ) ) );
+                                var serverPubkey = b.target.getAttribute( "data-serverpub" );
+                                var timelock = current_blockheight + 10;
+                                var witness_script = generateHtlc(
+                                    serverPubkey,
+                                    swap_pubkey,
+                                    pmthash,
+                                    timelock
+                                );
+                                var htlcObject = bitcoinjs.payments.p2wsh({
+                                    redeem: {
+                                        output: witness_script,
+                                        network: bitcoinjs.networks.mainnet,
+                                    },
+                                    network: bitcoinjs.networks.mainnet,
+                                });
+                                //send the swap address to the server along with
+                                //your swap pubkey and the payment hash. Then have
+                                //the server recreate the swap address and, if it
+                                //matches the one you sent, they should send the
+                                //amount at issue to the swap address. Then you
+                                //should check if they sent the right amount and
+                                //sweep it. Then they should get your preimage and
+                                //settle the invoice that came to them.
+                                var port = "";
+                                if ( window.location.port ) port = `:${window.location.port}`;
+                                var url = window.location.protocol + "//" + window.location.hostname + port + `/start_swap/?swap_pubkey=${swap_pubkey}&htlc_address=${htlcObject.address}&pmthash=${pmthash}`;
+                                getData( url );
+                                showModal( `Waiting for server to send your money...` );
+                                var waitIsOver = await waitForMoneyToArriveInAddress(htlcObject.address);
+                                if ( waitIsOver == "failure" ) return;
+                                var tx_array = await addressReceivedMoneyInThisTx(htlcObject.address);
+                                var txid = tx_array[0];
+                                var txindex = tx_array[1];
+                                var amount_received = tx_array[2];
+                                if ( Number( amount_received ) < Number( amount_expected_in_swap_address ) && Math.abs( Number( amount_received ) - Number( amount_expected_in_swap_address ) ) / Number( amount_expected_in_swap_address ) > .02 ) return showModal( "Server tried to scam you, aborting trade! Amount received: " + Number( amount_received ) + " Amount expected: " + Number( amount_expected_in_swap_address ) + " Equality: " + Number( amount_received ) === Number( amount_expected_in_swap_address ) );
+                                console.log( "Amount received: " + Number( amount_received ) + " Amount expected: " + Number( amount_expected_in_swap_address ) + " Equality: " + Number( amount_received ) === Number( amount_expected_in_swap_address ) );
+                                var original_quantity_of_sats = amount_received;
+                                var feerate = await getMinFeeRate();
+                                var new_quantity_of_sats = amount_received - ( feerate * 200 );
+                                if ( new_quantity_of_sats < 546 ) new_quantity_of_sats = amount_received - 200;
+                                var userPrivkey = swap_privkey;
+                                var tx_hex = sweepingHTLC(
+                                    txid,
+                                    txindex,
+                                    original_quantity_of_sats,
+                                    new_quantity_of_sats,
+                                    userPrivkey,
+                                    serverPubkey,
+                                    preimage,
+                                    timelock,
+                                    useraddress,
+                                    swap_pubkey
+                                );
+                                console.log( tx_hex );
+                                sessionStorage.removeItem( "modal_cleared" );
+                                showModal( `You're almost done! Just X out of this popup when the following transaction has 1 confirmation: <a href="https://mempool.space/tx/${txid}" target="_blank">https://mempool.space/tx/${txid}</a>`, true );
+                                await getNote( "modal_cleared" );
+                                var sweep_txid = await pushBTCpmt(tx_hex);
+                                sessionStorage.removeItem( "modal_cleared" );
+                                showModal( `Your transaction was a success! Here is your txid: <a href="https://mempool.space/tx/${sweep_txid}" target="_blank">https://mempool.space/tx/${sweep_txid}</a>`, true );
+                                await getNote( "modal_cleared" );
+                                window.location.reload();
+                            }
+                        });
+                        $$( '.settle_ln' ).forEach( button => {
+                            button.onclick = async b => {
+                                var preimage = b.target.getAttribute( "data-preimage" );
+                                var content = `
+                                    <p>Enter an invoice with the following amount</p>
+                                    <div class="tan">${amount_expected_ln}</div>
+                                    <p>And the following preimage</p>
+                                    <div class="tan">${preimage}</div>
+                                    <p><input class="user_invoice" placeholder="Enter your invoice here"></p>
+                                    <p><button class="invoice_submitter">Submit</button></p>
+                                `;
+                                showModal( content );
+                                $( '.invoice_submitter' ).onclick = async () => {
+                                    var port = "";
+                                    if ( window.location.port ) port = `:${window.location.port}`;
+                                    var invoice = $( '.user_invoice' ).value;
+                                    var status = await getData( window.location.protocol + "//" + window.location.hostname + port + `/pay_invoice/?invoice=${invoice}` );
+                                    console.log( "status:", status );
+                                    if ( status.includes( "success" ) ) {
+                                        showModal( `Success, your invoice was settled. Now go in peace.` );
+                                    } else if ( status.includes( "undefined" ) ) {
+                                        showModal( `<p>It looks like the invoice you created has the wrong preimage. Did you create it with a custom preimage? Most wallets don't let you but LND does. On the command line, you can create an image with a custom preimage like this:</p><code style="font-family: monospace;">lncli addinvoice --preimage ${preimage} --amt ${amount_expected_ln}</code>` );
+                                    } else {
+                                        showModal( `Oh no, we couldn't find a route to you! Consider using the base layer to settle or try again later.` );
+                                    }
+                                }
+                            }
+                        });
+                        if ( v2 ) {
+                            $$( '.attestation_info' ).forEach( async att_div => {
+                                var ptag = nobleSecp256k1.getPublicKey( att_div.getAttribute( "data-pmthash" ), true ).substring( 2 );
+                                var relay_to_query_for_attestations = $( '.user_relays li' ).innerText;
+                                var attestations = await getNostrNotesByKindAndPtag( 55869, ptag, relay_to_query_for_attestations );
+                                if ( attestations == "time is up" ) attestations = [];
+                                attestations = removeDuplicates( attestations );
+                                attestations = removeInvalidInvoices( attestations );
+                                console.log( "lsp_keyhash:", user_data[ "lsp_keyhash" ] );
+                                var user_pubkey = await window.nostr.getPublicKey();
+                                var sig_is_good = await schnorr.verify( user_data[ "lsp_keyhash_sig" ], user_data[ "lsp_keyhash" ], user_pubkey );
+                                //console.log( "sig is good, right?", sig_is_good );
+                                var lsp_pubkey = await getData( window.location.protocol + "//" + window.location.hostname + port + "/get_lsp_pubkey" );
+                                var real_keyhash = sha256( hexToBytes( lsp_pubkey ) ).toString( "hex" );
+                                if ( real_keyhash != user_data[ "lsp_keyhash" ] || !sig_is_good ) return alert( "Warning, this website is trying to scam you! It is telling you you signed a statement saying the relay's pubkey is one thing when you really did not. Beware, and do not trust this site any further!" );
+                                attestations = removeInvoicesWithWrongPubkeys( attestations, lsp_pubkey );
+                                attestations = removeInvoicesWithWrongPmthash( attestations, att_div.getAttribute( "data-pmthash" ) );
+                                var pending_amt = att_div.getAttribute( "data-pending_amt" );
+                                pending_amt = Number( pending_amt );
+                                var swap_fee = att_div.getAttribute( "data-swap_fee" );
+                                swap_fee = Number( swap_fee );
+                                var amts_match = null;
+                                if ( attestations.length ) amts_match = pending_amt == getInvoiceAmount( attestations[ 0 ] ) ? true : false;
+                                var num_of_attestations = attestations.length;
+                                var att_meaning = "";
+                                if ( !num_of_attestations ) att_meaning = `The sender did not say how much money you are suppose to receive, therefore there is no way to validate that this website is forwarding the correct amount to you. Do not settle this payment unless you trust this website to forward you the correct amount.`;
+                                if ( num_of_attestations == 1 && amts_match ) att_meaning = `There is only one known sender and they seemed to confirm the amount you are supposed to receive. But there is no way to validate this information. This website could have falsified that notification, and there could be other, undetected senders who your LSP is waiting to steal from as soon as you settle this payment. However, this situation is the best this software can do. Proceed and settle the payment but only if you trust that your LSP is not falsifying attestations or waiting to steal from undetected senders.`;
+                                if ( num_of_attestations > 1 ) att_meaning = `There are multiple senders who independently attest (and have proof) that your LSP is trying to cheat you by taking money that ought to come to you. Do not proceed! Instead, warn everyone not to use this LSP anymore by broadcasting the following proof that they tried to cheat you: ZAPLOCKER FRAUD PROOF -- LSP scam invoice 1: ${attestations[ 0 ]} -- LSP scam invoice 2: ${attestations[ 1 ]}`;
+                                att_div.getElementsByClassName( "att_num" )[ 0 ].innerText = num_of_attestations;
+                                att_div.getElementsByClassName( "att_meaning" )[ 0 ].innerText = att_meaning;
+                                console.log( "attestation info:", ptag, relay_to_query_for_attestations, attestations );
+                                att_div.classList.remove( "hidden" );
+                                $( '.attestation_loader' ).classList.add( "hidden" );
+                                if ( !num_of_attestations ) {
+                                    var event = {
+                                        "content": "",
+                                        "created_at": Math.floor( Date.now() / 1000 ),
+                                        "kind": 55869,
+                                        "tags": [ [ "p", ptag ] ],
+                                        "pubkey": user_pubkey
+                                    }
+                                    var signed_event = await window.nostr.signEvent( event );
+                                    var was_seen = await eventWasReplayedTilSeen( signed_event, relay_to_query_for_attestations );
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+            function removeDuplicates(arr) {
+                return arr.filter((item,index) => arr.indexOf(item) === index);
+            }
+            function isValidInvoice( invoice ) {
+                try{
+                    return ( typeof( bolt11.decode( invoice ) ) == "object" );
+                } catch( e ) {
+                    return;
+                }
+            }
+            function removeInvalidInvoices( arr ) {
+                var new_arr = JSON.parse( JSON.stringify( arr ) );
+                new_arr.forEach( (inv,idx) => {
+                    if ( !isValidInvoice( inv ) ) new_arr.splice( idx, 1 );
+                });
+                return new_arr;
+            }
+            function getInvoiceAmount( invoice ) {
+                var decoded = bolt11.decode( invoice );
+                var amount = decoded[ "satoshis" ].toString();
+                return Number( amount );
+            }
+            function getInvoicePubkey( invoice ) {
+                var decoded = bolt11.decode( invoice );
+                return decoded.payeeNodeKey;
+            }
+            function getInvoicePmthash( invoice ) {
+                var decoded = bolt11.decode( invoice );
+                var i; for ( i=0; i<decoded[ "tags" ].length; i++ ) {
+                    if ( decoded[ "tags" ][ i ][ "tagName" ] == "payment_hash" ) {
+                        var pmthash = decoded[ "tags" ][ i ][ "data" ].toString();
+                    }
+                }
+                return pmthash;
+            }
+            function removeInvoicesWithWrongPubkeys( arr, right_pubkey ) {
+                var new_arr = JSON.parse( JSON.stringify( arr ) );
+                new_arr.forEach( (inv,idx) => {
+                    if ( getInvoicePubkey( inv ) != right_pubkey ) new_arr.splice( idx, 1 );
+                });
+                return new_arr;
+            }
+            function removeInvoicesWithWrongPmthash( arr, right_pmthash ) {
+                var new_arr = JSON.parse( JSON.stringify( arr ) );
+                new_arr.forEach( (inv,idx) => {
+                    if ( getInvoicePmthash( inv ) != right_pmthash ) new_arr.splice( idx, 1 );
+                });
+                return new_arr;
+            }
+            var eventWasReplayedTilSeen = async ( event, the_relay, num ) => {
+                if ( !num ) num = 0;
+                var note = await getNostrNote( event.id, the_relay );
+                if ( note != "time is up" ) return true;
+                console.log( "replaying this event:", event.id, "at this relay:", the_relay );
+                num = num + 1;
+                await setNote( event, null, the_relay );
+                var was_seen = false;
+                if ( num < 6 ) was_seen = await eventWasReplayedTilSeen( event, the_relay, num );
+                return was_seen;
+            }
+            async function getSignedEvent( event, privateKey ) {
+                var eventData = JSON.stringify([
+                    0,
+                    event['pubkey'],
+                    event['created_at'],
+                    event['kind'],
+                    event['tags'],
+                    event['content']
+                ]);
+                event.id = bitcoinjs.crypto.sha256( eventData ).toString( "hex" );
+                event.sig = await nobleSecp256k1.schnorr.sign( event.id, privateKey );
+                return event;
+            }
+            var makeEvent = async ( note, recipientpubkey ) => {
+              var now = Math.floor( ( new Date().getTime() ) / 1000 );
+              if ( recipientpubkey ) {
+                note = encrypt( privKey, recipientpubkey, note );
+                var newevent = [
+                  0,
+                  pubKey,
+                  now,
+                  4,
+                  [['p', recipientpubkey]],
+                  note
+                ];
+              } else {
+                var newevent = [
+                  0,
+                  pubKey,
+                  now,
+                  1,
+                  [],
+                  note
+                ];    
+              }
+              var message = JSON.stringify( newevent );
+              var msghash = bytesToHex( sha256( message ) );
+              var sig = await nobleSecp256k1.schnorr.sign( msghash, privKey );
+              var fullevent = {
+                "id": msghash,
+                "pubkey": pubKey,
+                "created_at": now,
+                "kind": recipientpubkey ? 4 : 1,
+                "tags": recipientpubkey ? [['p', recipientpubkey]] : [],
+                "content": note,
+                "sig": sig
+              }
+              return fullevent;
+            }
+            async function getNostrNote( id, the_relay ) {
+                var started_waiting_time = Math.floor( Date.now() / 1000 );
+                var note = "";
+                var relays = [the_relay];
+                var i; for ( i=0; i<relays.length; i++ ) {
+                    var myrelay = relays[ i ];
+                    socket = new WebSocket( myrelay );
+                    socket.addEventListener( 'message', async function( event ) {
+                        var event = JSON.parse( event.data );
+                        if ( !event[ 2 ] ) return;
+                        // console.log( "got an event!", event );
+                        var sig = event[ 2 ].sig;
+                        var eventData = JSON.stringify([
+                            0,                  // Reserved for future use
+                            event[ 2 ]['pubkey'],       // The sender's public key
+                            event[ 2 ]['created_at'],   // Unix timestamp
+                            event[ 2 ]['kind'],     // Message “kind” or type
+                            event[ 2 ]['tags'],     // Tags identify replies/recipients
+                            event[ 2 ]['content']       // Your note contents
+                        ]);
+                        var id  = sha256( eventData ).toString( 'hex' );
+                        var pubKeyPlusOne = ( BigInt( "0x" + pubKey ) + BigInt( "0x" + pubKey ) ).toString( 16 ).substring( 0, 64 );
+                        var valid = await nobleSecp256k1.schnorr.verify( sig, id, event[ 2 ].pubkey );
+                        if ( valid ) note = event[ 2 ].content;
+                    });
+                    socket.addEventListener( 'open', function open() {
+                        var randomid = bitcoinjs.ECPair.makeRandom().privateKey.toString( "hex" ).substring( 0, 16 );
+                        var filter = {
+                            "ids": [
+                                id
+                            ]
+                        }
+                        var subscription = [ "REQ", randomid, filter ];
+                        subscription = JSON.stringify( subscription );
+                        var chaser = [ "CLOSE", randomid ];
+                        chaser = JSON.stringify( chaser );
+                        socket.send( subscription );
+                        setTimeout( function() {socket.send( chaser );}, 1000 );
+                        setTimeout( function() {socket.close();}, 2000 );
+                    });
+                    async function isNoteSetYet( note_i_seek ) {
+                        return new Promise( function( resolve, reject ) {
+                            if ( !note_i_seek ) {
+                                var current_time = Math.floor( Date.now() / 1000 );
+                                if ( started_waiting_time + 5 < current_time ) {
+                                    resolve( "time is up" );
+                                }
+                                setTimeout( async function() {
+                                    var msg = await isNoteSetYet( note );
+                                    resolve( msg );
+                                }, 100 );
+                            } else {
+                                resolve( note_i_seek );
+                            }
+                        });
+                    }
+                    async function getTimeoutData() {
+                        var note_i_seek = await isNoteSetYet( note );
+                        return note_i_seek;
+                    }
+                    var returnable = await getTimeoutData();
+                    return returnable;
+                }
+            }
+            var setNote = async ( note_or_event, recipient, relay ) => {
+                if ( typeof note_or_event == "string" ) var event = await makeEvent( note_or_event, recipient );
+                else var event = note_or_event;
+                var mysocket = new WebSocket( relay );
+                mysocket.addEventListener( "open", () => mysocket.send( JSON.stringify( ["EVENT", event ] ) ) );
+            }
+            async function getNostrNotesByKindAndPtag( kind, ptag, the_relay ) {
+                var started_waiting_time = Math.floor( Date.now() / 1000 );
+                var notes = [];
+                var relays = [the_relay];
+                var i; for ( i=0; i<relays.length; i++ ) {
+                    var myrelay = relays[ i ];
+                    socket = new WebSocket( myrelay );
+                    socket.addEventListener( 'message', async function( event ) {
+                        var event = JSON.parse( event.data );
+                        if ( !event[ 2 ] ) return;
+                        // console.log( "got an event!", event );
+                        var sig = event[ 2 ].sig;
+                        var eventData = JSON.stringify([
+                            0,                  // Reserved for future use
+                            event[ 2 ]['pubkey'],       // The sender's public key
+                            event[ 2 ]['created_at'],   // Unix timestamp
+                            event[ 2 ]['kind'],     // Message “kind” or type
+                            event[ 2 ]['tags'],     // Tags identify replies/recipients
+                            event[ 2 ]['content']       // Your note contents
+                        ]);
+                        var id  = sha256( eventData ).toString( 'hex' );
+                        var pubKeyPlusOne = ( BigInt( "0x" + pubKey ) + BigInt( "0x" + pubKey ) ).toString( 16 ).substring( 0, 64 );
+                        var valid = await nobleSecp256k1.schnorr.verify( sig, id, event[ 2 ].pubkey );
+                        if ( valid ) notes.push( event[ 2 ].content );
+                    });
+                    socket.addEventListener( 'open', function open() {
+                        var randomid = bitcoinjs.ECPair.makeRandom().privateKey.toString( "hex" ).substring( 0, 16 );
+                        var filter = {
+                            "kinds": [
+                                kind
+                            ],
+                            "#p": [
+                                ptag
+                            ],
+                        }
+                        var subscription = [ "REQ", randomid, filter ];
+                        subscription = JSON.stringify( subscription );
+                        var chaser = [ "CLOSE", randomid ];
+                        chaser = JSON.stringify( chaser );
+                        socket.send( subscription );
+                        setTimeout( function() {socket.send( chaser );}, 1000 );
+                        setTimeout( function() {socket.close();}, 2000 );
+                    });
+                    async function isNoteSetYet( note_i_seek ) {
+                        return new Promise( function( resolve, reject ) {
+                            if ( !note_i_seek.length ) {
+                                var current_time = Math.floor( Date.now() / 1000 );
+                                if ( started_waiting_time + 5 < current_time ) {
+                                    resolve( "time is up" );
+                                }
+                                setTimeout( async function() {
+                                    var msg = await isNoteSetYet( notes );
+                                    resolve( msg );
+                                }, 100 );
+                            } else {
+                                resolve( note_i_seek );
+                            }
+                        });
+                    }
+                    async function getTimeoutData() {
+                        var note_i_seek = await isNoteSetYet( notes );
+                        return note_i_seek;
+                    }
+                    var returnable = await getTimeoutData();
+                    return returnable;
+                }
+            }
+            function encrypt( privkey, pubkey, text ) {
+                var key = nobleSecp256k1.getSharedSecret( privkey, '02' + pubkey, true ).substring( 2 );
+                var iv = window.crypto.getRandomValues(new Uint8Array(16));
+                var cipher = browserifyCipher.createCipheriv( 'aes-256-cbc', hexToBytes( key ), iv );
+                var encryptedMessage = cipher.update(text,"utf8","base64");
+                emsg = encryptedMessage + cipher.final( "base64" );
+                var uint8View = new Uint8Array( iv.buffer );
+                var decoder = new TextDecoder();
+                return emsg + "?iv=" + btoa( String.fromCharCode.apply( null, uint8View ) );
+            }
+            function decrypt( privkey, pubkey, ciphertext ) {
+                var [ emsg, iv ] = ciphertext.split( "?iv=" );
+                var key = nobleSecp256k1.getSharedSecret( privkey, '02' + pubkey, true ).substring( 2 );
+                var decipher = browserifyCipher.createDecipheriv(
+                    'aes-256-cbc',
+                    hexToBytes( key ),
+                    hexToBytes( base64ToHex( iv ) )
+                );
+                var decryptedMessage = decipher.update( emsg, "base64" );
+                dmsg = decryptedMessage + decipher.final( "utf8" );
+                return dmsg;
+            }
+            function isValidAddress( address ) {
+                try{
+                    return !!tapscript.Address.decode( address ).script;
+                } catch( e ) {return;}
+                return;
+            }
+        </script>
+    </head>
+    <body>
+        <div class="onboarder">
+            <div class="black_stripes">
+                <span>ZAPLOCKER</span>
+            </div>
+            <p style="text-align: center;"><span style="vertical-align: middle;font-family: 'Ubuntu Mono', monospace;">get a non-custodial lightning address in </span><span style="font-weight: bolder;vertical-align: middle;font-family: 'Ubuntu Mono', monospace; font-size: 150%">3</span><span style="vertical-align: middle;font-family: 'Ubuntu Mono', monospace;"> steps</span></p>
+            <div class="big_btns">
+                <div class="big_btn log_in_big_btn">
+                    <div class="big_logo log_in_logo"></div>
+                    <div class="log_in_label"><span class="big_num log_in_num">1</span>login with nostr</div>
+                </div>
+                <div class="big_btn choose_big_btn">
+                    <div class="big_logo choose_logo"></div>
+                    <div class="choose_label"><span class="big_num choose_num">2</span>choose a username</div>
+                </div>
+                <div class="big_btn receive_big_btn">
+                    <div class="big_logo receive_logo"></div>
+                    <div class="receive_label"><span class="big_num receive_num">3</span>receive payments</div>
+                </div>
+            </div>
+            <p>&nbsp;</p>
+            <div class="black_stripes_bottom">
+                <span>
+                    <button>LOGIN</button>
+                </span>
+            </div>
+<!--
+            <div class="header_wrapper">
+                <span>&nbsp;</span>
+                <button class="log_in">Log in</button>
+            </div>
+            <p>Here are the steps to get a non-custodial lightning address</p>
+            <ol class="list_of_steps">
+                <li>Log in with nostr</li>
+                <li>Choose a username</li>
+                <li>Start receiving payments</li>
+                <li>We will then give you a lightning address and an lnurl</li>
+                <li>You should add these to your nostr profile</li>
+                <li>When someone queries for an invoice at your lightning address we will use one of your payment hashes to give them an invoice that we can't settle (we will also show them your signature on it in case they want to verify it)</li>
+                <li>When they pay it we will notify you on nostr to come get your payment</li>
+                <li>When you come here you will log in and get your encrypted preimages and info about the payment</li>
+                <li>Then you will decrypt your preimages and find the one your payment is locked to</li>
+                <li>Then you'll have two choices: (1) receive the payment on the base layer or (2) receive it on lightning</li>
+                <li>If you want it on the base layer we'll do an atomic swap</li>
+                <li>If you want it on lightning you'll need a wallet that lets you create an invoice with a custom preimage (e.g. LND lets you do this) and then you'll need to paste that invoice here</li>
+            </ol>
+-->
+        </div>
+        <div class="onboarded hidden">
+            <div class="header_wrapper">
+                <h1>Dashboard</h1>
+                <button class="log_out">Log out</button>
+            </div>
+            <h2>Your info</h2>
+            Username: <span class="loaded_username"></span><br>
+            Lightning address: <span class="loaded_lnaddress"></span><br><br>
+            Lnurl paycode:<br>
+            <div class="loaded_paycode"></div>
+            <div class="v2_info hidden">
+                <br>
+                Your relays: <ul class="user_relays"></ul>
+                <div class="relays_sig hidden"></div>
+            </div>
+            <h2>Pending payments</h2>
+            <div class="loaded_pending">None</div>
+        </div>
+        <script>
+            $( '.log_out' ).onclick = async () => {
+                window.location.reload();
+            }
+            $( '.black_stripes_bottom span button' ).onclick = async () => {
+                if ( !window.nostr ) return showModal( `Use a nostr extension such as <a href="https://getalby.com" target="_blank">getalby.com</a>` );
+                if ( typeof window.nostr.enable != "function" ) return showModal( `It looks like you are using an extension such as <a href="https://getalby.com" target="_blank">getalby.com</a> but it doesn't have nostr enabled. Please add a nostr keypair to your extension and then try again` );
+                if ( typeof window.nostr.signSchnorr != "function" ) return showModal( `It looks like you are using a nostr extension such as nos2x that does not support creating schnorr signatures. Please try again with a different extension such as <a href="https://getalby.com" target="_blank">getalby.com</a>` );
+                await window.nostr.enable();
+                user_pubkey = await window.nostr.getPublicKey();
+                var port = "";
+                if ( window.location.port ) port = `:${window.location.port}`;
+                var user_data = await getData( window.location.protocol + "//" + window.location.hostname + port + `/test_pubkey/?pubkey=${user_pubkey}` );
+                if ( !user_data.toLowerCase().includes( "error: invalid pubkey" ) ) {
+                    loadUser( user_pubkey, port, user_data );
+                } else {
+                    var port = "";
+                    if ( window.location.port ) port = `:${window.location.port}`;
+                    var html = `
+                        <p>Please choose a username for your lightning address</p>
+                        <p style="display: flex; align-items: center">
+                            <input class="desired_username"> <span>&nbsp;@&nbsp;${window.location.hostname + port}</span>
+                        </p>
+                        <input class="user_pubkey hidden">
+                        <p>And a nostr relay where we can notify you when you get zapped</p>
+                        <p>
+                            <input class="user_relay">
+                        </p>
+                        <p>
+                            <button type="button" class="username_submitter">Submit</button>
+                        </p>
+                    `;
+                    showModal( html );
+                    $( '.user_pubkey' ).value = user_pubkey;
+                    $( '.desired_username' ).onkeyup = async () => {
+                        var name = $( '.desired_username' ).value;
+                        name = name.toLowerCase();
+                        $( '.desired_username' ).value = name;
+                        if ( !name ) {
+                            $( '.desired_username' ).classList.remove( "bad_form" );
+                            return;                    
+                        }
+                        var name_is_good = await username_is_good( name );
+                        if ( !name_is_good ) {
+                            $( '.desired_username' ).classList.add( "bad_form" );
+                        } else {
+                            $( '.desired_username' ).classList.remove( "bad_form" );
+                        }
+                    }
+                    $( '.desired_username' ).onchange = async () => {
+                        var name = $( '.desired_username' ).value;
+                        name = name.toLowerCase();
+                        $( '.desired_username' ).value = name;
+                        if ( !name ) {
+                            $( '.desired_username' ).classList.remove( "bad_form" );
+                            return;                    
+                        }
+                        var name_is_good = await username_is_good( name );
+                        if ( !name_is_good ) {
+                            $( '.desired_username' ).classList.add( "bad_form" );
+                        } else {
+                            $( '.desired_username' ).classList.remove( "bad_form" );
+                        }
+                    }
+                    $( '.username_submitter' ).onclick = async () => {
+                        var username = $( '.desired_username' ).value;
+                        var user_pubkey = $( '.user_pubkey' ).value;
+                        var relay = $( '.user_relay' ).value;
+                        if ( $( '.desired_username' ).classList.contains( "bad_form" ) ) return alert( "That username is taken. Please try again" );
+                        if ( !username || username.length > 64 ) return alert( "Please enter a username" );
+                        if ( !relay  || !relay.startsWith( "wss://" ) || relay.length < 10 || !relay.includes( "." ) ) return alert( "Please enter a valid relay" );
+                        showModal( `creating your lightning address...` );
+                        var event = await makeEvent( "test", pubKey );
+                        var was_seen = await eventWasReplayedTilSeen( event, relay );
+                        if ( !was_seen ) return showModal( `That relay won't accept our dms, please use a different one` );
+                        var preimages = "";
+                        var sigs = "";
+                        var i; for ( i=0; i<1000; i++ ) {
+                            preimages += bip39.mnemonicToEntropy( bip39.generateMnemonic( 256 ) );
+                        }
+                        var hashes = "";
+                        var i; for ( i=0; i<preimages.match(/.{1,64}/g).length; i++ ) {
+                            var index = i;
+                            var preimage = preimages.match(/.{1,64}/g)[ i ];
+                            hash = bytesToHex( sha256( hexToBytes( preimage ) ) );
+                            hashes += hash;
+                            sig = await window.nostr.signSchnorr( hash );
+                            sigs += sig;
+                        }
+                        var ciphertext = await window.nostr.nip04.encrypt( user_pubkey, preimages );
+                        var relays_array = [relay];
+                        var relays_hash = sha256( JSON.stringify( relays_array ) ).toString( "hex" );
+                        var relays_sig = await window.nostr.signSchnorr( relays_hash );
+                        var port = "";
+                        if ( window.location.port ) port = `:${window.location.port}`;
+                        var lsp_pubkey = await getData( window.location.protocol + "//" + window.location.hostname + port + "/get_lsp_pubkey" );
+                        var lsp_keyhash = sha256( hexToBytes( lsp_pubkey ) ).toString( "hex" );
+                        var lsp_keyhash_sig = await window.nostr.signSchnorr( lsp_keyhash );
+                        var json = {username, user_pubkey, relay, hashes, ciphertext, sigs, relays_array, relays_sig, lsp_keyhash, lsp_keyhash_sig}
+                        var data = await postData( `${window.location.protocol + "//" + window.location.hostname + port}/set_user/`, JSON.stringify( json ) );
+                        if ( data == "user created" ) {
+                            var port = "";
+                            if ( window.location.port ) port = `:${window.location.port}`;
+                            user_data = await getData( window.location.protocol + "//" + window.location.hostname + port + `/test_pubkey/?pubkey=${user_pubkey}` );
+                            loadUser( user_pubkey, port, user_data );
+                            showModal( `<p>Success, here is your lightning address:</p><p>${username}@${window.location.hostname + port}</p><p>And here is your lnurl:</p><p>${bech32.bech32.encode( "lnurl", bech32.bech32.toWords( hexToBytes( textToHex( window.location.protocol + "//" + window.location.hostname + port + "/.well-known/lnurlp/" + username ) ) ), 10000 ).toUpperCase()}</p>` );
+                        }
+                    }
+                }
+            }
+        </script>
+        <div class="black-bg"></div>
+        <div class="modal"></div>
+    </body>
+</html>

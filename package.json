@@ -1,0 +1,26 @@
+{
+  "name": "zaplocker",
+  "version": "1.0.0",
+  "description": "![](https://supertestnet.github.io/swap-service/zaplocker-logo.png)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.5.1",
+    "bech32": "^2.0.0",
+    "bitcoinjs-lib": "^6.1.5",
+    "bolt11": "^1.4.1",
+    "browserify-cipher": "^1.0.1",
+    "crypto": "^1.0.1",
+    "ecpair": "^2.1.0",
+    "noble-secp256k1": "^1.2.14",
+    "request": "^2.88.2",
+    "tiny-secp256k1": "^2.2.3",
+    "varuint-bitcoin": "^1.1.2",
+    "websocket": "^1.0.34"
+  }
+}
